@@ -258,7 +258,7 @@ module.exports = function (config) {
             if (runID) {
                 serviceOptions.filter = runID; //shouldn't be able to over-ride
             }
-            var httpOptions = $.extend(true, {}, serviceOptions, options);
+            var httpOptions = $.extend(true, { _: Date.now() }, serviceOptions, options);
             return http.get(filters, httpOptions);
         },
 
