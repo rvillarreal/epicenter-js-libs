@@ -66,7 +66,7 @@ var Strategy = classFrom(IdentityStrategy, {
         var _this = this;
         var shouldReplay = false;
 
-        return this.run.load(latestRun.id, null, {
+        return this.run.load(latestRun.id, { _: Date.now() }, {
             success: function (run, msg, headers) {
                 shouldReplay = headers.getResponseHeader('pragma') === 'persistent';
             }
