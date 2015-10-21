@@ -26,7 +26,7 @@
 
 var ChannelManager = require('./channel-manager');
 var classFrom = require('../util/inherit');
-var urlService = require('../service/url-config-service');
+var ConfigService = require('../service/configuration-service');
 
 var AuthManager = require('./auth-manager');
 
@@ -47,18 +47,23 @@ var getFromSettingsOrSessionOrError = function (value, sessionKeyName, settings)
 var __super = ChannelManager.prototype;
 var EpicenterChannelManager = classFrom(ChannelManager, {
     constructor: function (options) {
-        var userInfo = session.getCurrentUserSessionInfo();
-
         var defaults = {
-            account: userInfo.account,
-            project: userInfo.project,
+            account: '',
+            project: '',
         };
-        var defaultCometOptions = $.extend(true, {}, defaults, userInfo, options);
+        var defaultCometOptions = $.extend(true, {}, defaults, options);
 
-        var urlOpts = urlService(defaultCometOptions.server);
+        var urlConfig = new ConfigService(defaultCometOptions).get('server');
+        if (!defaultCometOptions.account) {
+            defaultCometOptions.account = urlConfig.accountPath;
+        }
+        if (!defaultCometOptions.project) {
+            defaultCometOptions.project = urlConfig.projectPath;
+        }
+
         if (!defaultCometOptions.url) {
             //Default epicenter cometd endpoint
-            defaultCometOptions.url = urlOpts.protocol + '://' + urlOpts.host + '/channel/subscribe';
+            defaultCometOptions.url = urlConfig.protocol + '://' + urlConfig.host + '/channel/subscribe';
         }
 
         this.options = defaultCometOptions;
