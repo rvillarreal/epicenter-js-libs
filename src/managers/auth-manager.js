@@ -37,6 +37,7 @@ var MemberAdapter = require('../service/member-api-adapter');
 var StorageFactory = require('../store/store-factory');
 var Buffer = require('buffer').Buffer;
 var keyNames = require('./key-names');
+var _pick = require('../util/object-util')._pick;
 
 var defaults = {
     /**
@@ -62,8 +63,21 @@ function saveSession(userInfo) {
 }
 
 function getSession() {
-    var session = store.get(EPI_SESSION_KEY) || '{}';
-    return JSON.parse(session);
+    var serialized = store.get(EPI_SESSION_KEY) || '{}';
+    var session = JSON.parse(serialized);
+    // If the url contains the project and account
+    // override project, groupName, groupId and isFac
+    // Otherwise (i.e. localhost) use the saved session values
+    var urlConfig = new ConfigService().get('server');
+    var projectPath = urlConfig.projectPath;
+    if (projectPath && urlConfig.accountPath) {
+        var group = session.groups[projectPath];
+        if (group) {
+            $.extend(session, { project: projectPath }, group);
+        }
+    }
+
+    return session;
 }
 
 function AuthManager(options) {
@@ -167,18 +181,21 @@ AuthManager.prototype = $.extend(AuthManager.prototype, {
             token = response.access_token;
 
             var userInfo = decodeToken(token);
+            var oldGroups = getSession().groups || {};
             var userGroupOpts = $.extend(true, {}, adapterOptions, { success: $.noop, token: token });
             _this.getUserGroups({ userId: userInfo.user_id, token: token }, userGroupOpts).done( function (memberInfo) {
-                var data = {auth: response, user: userInfo, userGroups: memberInfo, groupSelection: {} };
+                var data = {auth: response, user: userInfo, userGroups: memberInfo };
+                var project = adapterOptions.project;
 
                 var sessionInfo = {
                     'auth_token': token,
                     'account': adapterOptions.account,
-                    'project': adapterOptions.project,
-                    'userId': userInfo.user_id
+                    'project': project,
+                    'userId': userInfo.user_id,
+                    'groups': oldGroups
                 };
                 // The group is not required if the user is not logging into a project
-                if (!adapterOptions.project) {
+                if (!project) {
                     saveSession(sessionInfo);
                     outSuccess.apply(this, [data]);
                     $d.resolve(data);
@@ -202,13 +219,13 @@ AuthManager.prototype = $.extend(AuthManager.prototype, {
                 }
 
                 if (group) {
-                    var groupSelection = group.groupId;
-                    data.groupSelection[adapterOptions.project] = groupSelection;
-                    var sessionInfoWithGroup = $.extend({}, sessionInfo, {
+                    var groupInfo = {
                         'groupId': group.groupId,
                         'groupName': group.name,
                         'isFac': _findUserInGroup(group.members, userInfo.user_id).role === 'facilitator'
-                    });
+                    };
+                    var sessionInfoWithGroup = $.extend({}, sessionInfo, groupInfo);
+                    sessionInfoWithGroup.groups[project] = groupInfo;
                     saveSession(sessionInfoWithGroup);
                     outSuccess.apply(this, [data]);
                     $d.resolve(data);
@@ -366,6 +383,37 @@ AuthManager.prototype = $.extend(AuthManager.prototype, {
      */
     getCurrentUserSessionInfo: function (options) {
         return getSession(options);
+    },
+
+    /**
+     * Will add a group to the session, it is assumed that the group and project exist and the user is part of it.
+     *
+     * Returns the new session object.
+     *
+     * **Example**
+     *
+     *      authMgr.addGroup('acme', { groupName: });
+     *
+     * **Parameters**
+     * @param {Object} `group` (Required) must have the project, groupName and groupId properties, isFac is optional and defaults to false
+     */
+    addGroup: function (group) {
+        return this.addGroups([group]);
+    },
+
+    addGroups: function (groups) {
+        var session = this.getCurrentUserSessionInfo();
+
+        $.each(groups, function (index, group) {
+            var extendedGroup = $.extend({}, { isFac: false }, group);
+            var project = extendedGroup.project;
+            var validProps = ['groupName', 'groupId', 'isFac'];
+            // filter object
+            extendedGroup = _pick(extendedGroup, validProps);
+            session.groups[project] = extendedGroup;
+        });
+        saveSession(session);
+        return session;
     }
 });
 
