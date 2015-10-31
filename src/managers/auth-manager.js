@@ -183,26 +183,31 @@ AuthManager.prototype = $.extend(AuthManager.prototype, {
             var userInfo = decodeToken(token);
             var oldGroups = getSession().groups || {};
             var userGroupOpts = $.extend(true, {}, adapterOptions, { success: $.noop, token: token });
+            var data = {auth: response, user: userInfo };
+            var project = adapterOptions.project;
+            //jshint camelcase: false
+            //jscs:disable
+            var isTeamMember = userInfo.parent_account_id === null;
+
+            var sessionInfo = {
+                'auth_token': token,
+                'account': adapterOptions.account,
+                'project': project,
+                'userId': userInfo.user_id,
+                'groups': oldGroups,
+                'isTeamMember': isTeamMember
+            };
+            // The group is not required if the user is not logging into a project
+            if (!project || isTeamMember) {
+                saveSession(sessionInfo);
+                outSuccess.apply(this, [data]);
+                $d.resolve(data);
+                return;
+            }
+
             _this.getUserGroups({ userId: userInfo.user_id, token: token }, userGroupOpts).done( function (memberInfo) {
-                var data = {auth: response, user: userInfo, userGroups: memberInfo };
-                var project = adapterOptions.project;
-
-                var sessionInfo = {
-                    'auth_token': token,
-                    'account': adapterOptions.account,
-                    'project': project,
-                    'userId': userInfo.user_id,
-                    'groups': oldGroups
-                };
-                // The group is not required if the user is not logging into a project
-                if (!project) {
-                    saveSession(sessionInfo);
-                    outSuccess.apply(this, [data]);
-                    $d.resolve(data);
-                    return;
-                }
-
                 var group = null;
+                data.userGroups = memberInfo;
                 if (memberInfo.length === 0) {
                     handleGroupError('The user has no groups associated in this account', 401, data);
                     return;
