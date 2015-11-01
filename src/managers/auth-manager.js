@@ -70,7 +70,7 @@ function getSession() {
     // Otherwise (i.e. localhost) use the saved session values
     var urlConfig = new ConfigService().get('server');
     var projectPath = urlConfig.projectPath;
-    if (projectPath && urlConfig.accountPath) {
+    if (session.groups && projectPath && urlConfig.accountPath) {
         var group = session.groups[projectPath];
         if (group) {
             $.extend(session, { project: projectPath }, group);
