@@ -90,7 +90,7 @@ var EpicenterChannelManager = classFrom(ChannelManager, {
      * @param  {String} `groupName` (Optional) Group to broadcast to. If not provided, picks up group from current session if end user is logged in.
      */
     getGroupChannel: function (groupName) {
-        groupName = getFromSettingsOrSessionOrError(groupName, 'groupName');
+        groupName = getFromSettingsOrSessionOrError(groupName, 'groupName', this.options);
         var account = getFromSettingsOrSessionOrError('', 'account', this.options);
         var project = getFromSettingsOrSessionOrError('', 'project', this.options);
 
@@ -133,7 +133,7 @@ var EpicenterChannelManager = classFrom(ChannelManager, {
         if (!worldid) {
             throw new Error('Please specify a world id');
         }
-        groupName = getFromSettingsOrSessionOrError(groupName, 'groupName');
+        groupName = getFromSettingsOrSessionOrError(groupName, 'groupName', this.options);
         var account = getFromSettingsOrSessionOrError('', 'account', this.options);
         var project = getFromSettingsOrSessionOrError('', 'project', this.options);
 
@@ -179,8 +179,8 @@ var EpicenterChannelManager = classFrom(ChannelManager, {
             throw new Error('Please specify a world id');
         }
         var userid = ($.isPlainObject(user) && user.id) ? user.id : user;
-        userid = getFromSettingsOrSessionOrError(userid, 'userId');
-        groupName = getFromSettingsOrSessionOrError(groupName, 'groupName');
+        userid = getFromSettingsOrSessionOrError(userid, 'userId', this.options);
+        groupName = getFromSettingsOrSessionOrError(groupName, 'groupName', this.options);
 
         var account = getFromSettingsOrSessionOrError('', 'account', this.options);
         var project = getFromSettingsOrSessionOrError('', 'project', this.options);
@@ -223,8 +223,8 @@ var EpicenterChannelManager = classFrom(ChannelManager, {
         if (!worldid) {
             throw new Error('Please specify a world id');
         }
-        userid = getFromSettingsOrSessionOrError(userid, 'userId');
-        groupName = getFromSettingsOrSessionOrError(groupName, 'groupName');
+        userid = getFromSettingsOrSessionOrError(userid, 'userId', this.options);
+        groupName = getFromSettingsOrSessionOrError(groupName, 'groupName', this.options);
 
         var account = getFromSettingsOrSessionOrError('', 'account', this.options);
         var project = getFromSettingsOrSessionOrError('', 'project', this.options);
